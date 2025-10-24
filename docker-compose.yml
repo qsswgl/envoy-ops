@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  envoy-proxy:
+    image: envoy-proxy:latest  # 使用本地构建的镜像
+    container_name: envoy-proxy
+    restart: unless-stopped  # 自动重启策略：除非手动停止，否则总是重启
+    network_mode: host  # 使用主机网络模式
+    
+    # 挂载 Envoy 配置文件和 SSL 证书
+    volumes:
+      - /etc/envoy:/etc/envoy:ro  # 挂载 Envoy 配置目录（只读）
+    
+    # 日志配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+# 重要说明：
+# 1. 私钥文件权限必须设置为 644，否则 Envoy 容器无法读取
+#    chmod 644 /etc/envoy/*.key
+# 2. 使用 host 网络模式，所有端口直接映射到主机
+# 3. 管理端口：http://localhost:9901

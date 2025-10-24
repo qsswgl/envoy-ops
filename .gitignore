@@ -1,0 +1,26 @@
+# Git ignore file for Envoy project
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+
+# SSH keys (security)
+*.pem
+*.key
+id_rsa
+id_rsa.pub

@@ -1,0 +1,19 @@
+阿里云服务器容器代理部署：  
+用 "C:\Key\www.qsgl.cn_id_ed25519" 无密码私钥免密ssh登录 www.qsgl.cn  阿里云服务器
+1 在阿里云服务器主机上安装部署容器里运行envoy代理 代理地址 https://www.qsgl.cn 代理后端 https://61.163.200.245 绑定域名www.qsgl.net ，需要你帮我增加容器里的envoy 代理，
+代理地址 https://www.qsgl.net:5002 代理到后端  https://61.163.200.245:5002 绑定域名www.qsgl.net 
+
+2 调用生成域名证书的api服务： https://tx.qsgl.net:5075/api/request-cert  时，
+  入参：post： {
+  "domain": "qsgl.net",
+  "provider": "DNSPOD"
+} 
+入参里的domain的键值，自动获取代理地址域名，例如若代理地址为 https://www.qsgl.cn ,则domain=qsgl.cn ，若代理地址为 https://www.qsgl.net 则domain=qsgl.net,根据代理地址绑定对应的泛域名证书
+
+部署成功，正常运行代理后：
+1 设置容器自动重启策略
+2 创建自动诊断脚本
+3 文档化故障排查流程
+4 配置服务监控告警（每 5 分钟检查一次），报警信息推送到qsoft@139.com  smtp 授权码：574a283d502db51ea200
+5 添加健康检查到容器配置
+5 使用 Docker Compose 管理部署
