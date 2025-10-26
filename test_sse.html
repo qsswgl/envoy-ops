@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSE 测试 - www.qsgl.net:5002</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .connected {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .disconnected {
+            background-color: #f44336;
+            color: white;
+        }
+        .connecting {
+            background-color: #FF9800;
+            color: white;
+        }
+        #messages {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-top: 20px;
+            height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .message {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #4CAF50;
+            background-color: white;
+        }
+        .error {
+            border-left-color: #f44336;
+        }
+        .info {
+            border-left-color: #2196F3;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .stat {
+            background-color: #e3f2fd;
+            padding: 15px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1976D2;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SSE 长连接测试</h1>
+        <div id="status" class="status connecting">正在连接...</div>
+        
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value" id="msgCount">0</div>
+                <div class="stat-label">收到消息数</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="duration">0s</div>
+                <div class="stat-label">连接时长</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="lastEvent">-</div>
+                <div class="stat-label">最后事件</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="connect()" id="connectBtn">连接</button>
+            <button onclick="disconnect()" id="disconnectBtn" disabled>断开</button>
+            <button onclick="clearMessages()">清空消息</button>
+        </div>
+        
+        <div id="messages"></div>
+    </div>
+
+    <script>
+        let eventSource = null;
+        let messageCount = 0;
+        let startTime = null;
+        let durationInterval = null;
+
+        const SSE_URL = 'https://www.qsgl.net:5002/sse/UsersID/1';
+
+        function addMessage(text, type = 'message') {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            messageDiv.textContent = `[${timestamp}] ${text}`;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function updateStatus(text, className) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = text;
+            statusDiv.className = `status ${className}`;
+        }
+
+        function updateStats() {
+            document.getElementById('msgCount').textContent = messageCount;
+            if (startTime) {
+                const duration = Math.floor((Date.now() - startTime) / 1000);
+                document.getElementById('duration').textContent = duration + 's';
+            }
+        }
+
+        function connect() {
+            if (eventSource) {
+                disconnect();
+            }
+
+            updateStatus('正在连接...', 'connecting');
+            addMessage(`正在连接到: ${SSE_URL}`, 'info');
+
+            eventSource = new EventSource(SSE_URL);
+            startTime = Date.now();
+            messageCount = 0;
+
+            durationInterval = setInterval(updateStats, 1000);
+
+            eventSource.onopen = function(e) {
+                updateStatus('已连接', 'connected');
+                addMessage('SSE 连接成功建立！', 'info');
+                document.getElementById('connectBtn').disabled = true;
+                document.getElementById('disconnectBtn').disabled = false;
+            };
+
+            eventSource.addEventListener('init', function(e) {
+                messageCount++;
+                document.getElementById('lastEvent').textContent = 'init';
+                addMessage(`[init] ${e.data}`, 'message');
+                updateStats();
+            });
+
+            eventSource.addEventListener('heartbeat', function(e) {
+                messageCount++;
+                document.getElementById('lastEvent').textContent = 'heartbeat';
+                addMessage(`[heartbeat] ${e.data}`, 'message');
+                updateStats();
+            });
+
+            eventSource.onmessage = function(e) {
+                messageCount++;
+                document.getElementById('lastEvent').textContent = 'message';
+                addMessage(`[message] ${e.data}`, 'message');
+                updateStats();
+            };
+
+            eventSource.onerror = function(e) {
+                updateStatus('连接错误', 'disconnected');
+                addMessage('连接发生错误！readyState: ' + eventSource.readyState, 'error');
+                if (eventSource.readyState === EventSource.CLOSED) {
+                    addMessage('连接已关闭，尝试重新连接...', 'error');
+                }
+                document.getElementById('connectBtn').disabled = false;
+                document.getElementById('disconnectBtn').disabled = true;
+            };
+        }
+
+        function disconnect() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+                clearInterval(durationInterval);
+                updateStatus('已断开', 'disconnected');
+                addMessage('SSE 连接已断开', 'info');
+                document.getElementById('connectBtn').disabled = false;
+                document.getElementById('disconnectBtn').disabled = true;
+            }
+        }
+
+        function clearMessages() {
+            document.getElementById('messages').innerHTML = '';
+            messageCount = 0;
+            updateStats();
+        }
+
+        // 页面加载时自动连接
+        window.onload = function() {
+            connect();
+        };
+
+        // 页面卸载时断开连接
+        window.onbeforeunload = function() {
+            disconnect();
+        };
+    </script>
+</body>
+</html>

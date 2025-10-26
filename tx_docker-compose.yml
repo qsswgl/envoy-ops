@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  envoy:
+    image: envoyproxy/envoy:v1.31-latest
+    container_name: envoy-proxy
+    restart: unless-stopped
+    ports:
+      - "443:443"         # HTTPS
+      - "5002:5002"       # HTTPS 5002
+      - "9901:9901"       # 管理端口
+    volumes:
+      - ./config/envoy.yaml:/etc/envoy/envoy.yaml:ro
+      - /opt/shared-certs:/etc/envoy/certs:ro
+    command: ["-c", "/etc/envoy/envoy.yaml", "--log-level", "info"]

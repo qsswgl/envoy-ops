@@ -2,14 +2,32 @@ version: '3.8'
 
 services:
   envoy-proxy:
-    image: envoy-proxy:latest  # 使用本地构建的镜像
+    image: envoyproxy/envoy:contrib-v1.36.2  # Envoy 1.36.2 contrib 支持 HTTP/3
     container_name: envoy-proxy
-    restart: unless-stopped  # 自动重启策略：除非手动停止，否则总是重启
-    network_mode: host  # 使用主机网络模式
+    restart: unless-stopped
+    network_mode: host  # 主机网络模式（支持 UDP 443 for HTTP/3）
+    user: root  # 以 root 身份运行以绑定特权端口
     
-    # 挂载 Envoy 配置文件和 SSL 证书
     volumes:
-      - /etc/envoy:/etc/envoy:ro  # 挂载 Envoy 配置目录（只读）
+      - /opt/envoy/config/envoy.yaml:/etc/envoy/envoy.yaml:ro
+      - /opt/shared-certs:/opt/certs:ro
+    
+    command: [-c, /etc/envoy/envoy.yaml, --log-level, info]
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+# 重要说明：
+# 1. 升级到 Envoy 1.36.2 contrib 版本
+# 2. 使用 RSA 2048 证书（/opt/shared-certs/qsgl.net.{key,fullchain.crt}）
+# 3. 系统配置：sysctl net.ipv4.ip_unprivileged_port_start=80
+# 4. 使用 host 网络模式，所有端口直接映射到主机
+# 5. HTTP/3 需要在 envoy.yaml 中配置 QUIC listener
+# 6. 管理端口：http://localhost:9901
+
     
     # 日志配置
     logging:

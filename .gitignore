@@ -18,9 +18,16 @@ Thumbs.db
 *.tmp
 *.bak
 *.backup
+*_OLD.md
 
 # SSH keys (security)
 *.pem
-*.key
 id_rsa
 id_rsa.pub
+
+# Binary files
+*.tar.gz
+*.zip
+
+# Sensitive configuration (keys will be in separate secure location)
+# Note: Configuration files are included for reference but keys are removed
